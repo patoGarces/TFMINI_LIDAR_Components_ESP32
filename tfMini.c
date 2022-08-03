@@ -14,8 +14,33 @@ const int txPin = 25;
 const int uartPort= UART_NUM_1;
 
 
-uint16_t muestras=0;
+struct{
+    uint8_t newData;
+    uint16_t muestras;      //muestras por segundo
+    uint16_t distancia;
+    uint16_t strength;
+    uint8_t mode;
+}tfMini;
 
+
+
+
+int16_t tfMiniGetDist(){
+    if(tfMini.newData){
+        return tfMini.distancia;
+    }
+    else{
+        return -1;
+    }
+}
+
+uint16_t tfMiniGetStrength(){
+    return tfMini.strength;
+}
+
+uint16_t tfMiniGetMode(){
+    return tfMini.mode;
+}
 /*
  * Uso esta funcion para unir 2 uint8
  */
@@ -48,13 +73,14 @@ void receiveTask(void *pvParameters ){
                 uint8_t calcChecksum = data[0] + data[1] + data[2] + data[3] + data[4] + data[5] + data[6] + data[7];
                 if( checksum == calcChecksum){
 
-                    uint16_t dist = makeUint16(data[2],data[3]);
-                    uint16_t strength = makeUint16(data[4],data[5]);
-                    uint8_t mode = data[6];
+                    tfMini.distancia = makeUint16(data[2],data[3]);
+                    tfMini.strength = makeUint16(data[4],data[5]);
+                    tfMini.mode = data[6];
                     //uint8_t cero= data[7];                                      // el datasheet dice que deberia ser 0 pero en la practica es 9 y el checksum da correcto
                     
-                    muestras++;
-                    printf("PAQUETE CORRECTO: distancia: %dcms, strength: %d,modo: %d\n",dist,strength,mode);
+                    tfMini.newData=1;
+                    tfMini.muestras++;
+                    
                 }
                 else{
                     printf("ERROR1\n");
@@ -103,10 +129,10 @@ void tfMiniInit(void){
 
     xTaskCreate(&receiveTask,"tarea recepcion", 4096, NULL, 3 , NULL);
 
-    while(1){
+    // while(1){
 
-        printf("Velocidad de muestreo: %d\n",muestras);
-        muestras=0;
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    //     printf("Velocidad de muestreo: %d\n",muestras);
+    //     muestras=0;
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
+    // }
 }
